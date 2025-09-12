@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -11,6 +11,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "sourceMap": true
+    /* remove the "types": ["@cloudflare/workers-types"] line */
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

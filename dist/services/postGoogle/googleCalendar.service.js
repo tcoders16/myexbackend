@@ -9,10 +9,9 @@ exports.GoogleCalendarService = void 0;
 // If Node < 18, you need node-fetch to make HTTP requests.
 const node_fetch_1 = __importDefault(require("node-fetch"));
 class GoogleCalendarService {
-    fetchImpl;
-    base = "https://www.googleapis.com/calendar/v3";
     constructor(fetchImpl = node_fetch_1.default) {
         this.fetchImpl = fetchImpl;
+        this.base = "https://www.googleapis.com/calendar/v3";
     }
     async createEvent(accessToken, event, calendarId = "primary") {
         if (!accessToken)
@@ -22,7 +21,7 @@ class GoogleCalendarService {
         const url = `${this.base}/calendars/${encodeURIComponent(calendarId)}/events`;
         // 12s timeout so the route never hangs forever
         const ac = new AbortController();
-        const to = setTimeout(() => ac.abort(), 12_000);
+        const to = setTimeout(() => ac.abort(), 12000);
         try {
             const resp = await this.fetchImpl(url, {
                 method: "POST",
@@ -63,7 +62,7 @@ class GoogleCalendarService {
         url.searchParams.set("timeMin", new Date().toISOString());
         // 8s timeout here is fine
         const ac = new AbortController();
-        const to = setTimeout(() => ac.abort(), 8_000);
+        const to = setTimeout(() => ac.abort(), 8000);
         try {
             const resp = await this.fetchImpl(url, {
                 headers: { Authorization: `Bearer ${accessToken}` },

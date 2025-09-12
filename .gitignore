@@ -3,6 +3,7 @@
 /dist
 /build
 /.turbo
+node_modules/
 
 # Editor directories and files
 .vscode/*

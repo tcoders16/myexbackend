@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { postExtract } from "../controller/extractController";
 import { latestByIp } from "../state/latestResults";
-import { createEventCtrl, listUpcomingCtrl } from "../controller/googleCal/googleCalendar.controller";
+
 // Create an isolated router for all /api/extract endpoints
 export const router = Router();
 
@@ -13,16 +13,6 @@ export const router = Router();
  * - Responds with { ok, data } or { ok:false, error }
  */
 router.post("/", postExtract);
-
-
-
-
-
-
-
-
-
-
 
 router.get("/latest", (req, res) => {
   const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()

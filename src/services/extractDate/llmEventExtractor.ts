@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import type { ExtractionResult, EventLite } from "../../types/events";
-import { ollamaGenerateJSON } from "../../clients/ollama";
+import { groqGenerateJSON } from "../../clients/groq";
 import type { ISO8601 } from "../../types/events";
 import { asISO } from "../../types/events";
 
@@ -66,7 +66,7 @@ export async function extractLLM(input: {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   // Pick model (env override → default)
-  const model = input.model ?? process.env.LLM_MODEL ?? "phi3:mini";
+  const model = process.env.OLLAMA_MODEL ?? input.model ?? "llama2";
 
   try {
     // Build a strict prompt to force JSON only
@@ -87,7 +87,7 @@ export async function extractLLM(input: {
     // logChunk("[extractLLM] prompt", prompt, 2000);
 
     // Ask the LLM (deterministic: temperature 0)
-    const respText = await ollamaGenerateJSON({
+    const respText = await groqGenerateJSON({
       prompt,
       model,
       signal: controller.signal,
@@ -145,7 +145,10 @@ export async function extractLLM(input: {
     console.log("[extractLLM] success", { events: cleanEvents.length });
     // Return real warnings (not a hardcoded "OK")
     return { events: cleanEvents, degraded: false };
-  } catch (e: any) {
+  } 
+  
+  
+  catch (e: any) {
     // Timeout or generic LLM error → degrade and let caller fallback
     const isTimeout = e?.name === "AbortError";
     const reason = isTimeout ? `llm timeout after ${timeoutMs}ms` : (e?.message || "llm error");

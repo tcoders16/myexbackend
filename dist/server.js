@@ -27,11 +27,12 @@ app.use((0, express_rate_limit_1.default)({
 }));
 // CORS (permissive; optionally replace "*" with process.env.ALLOW_ORIGIN)
 app.use((0, cors_1.default)({
-    origin: "*",
+    origin: [
+        "https://myex-olive.vercel.app", // your deployed frontend
+        "http://localhost:5173", // local dev
+    ],
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 204,
-    maxAge: 600,
+    credentials: true,
 }));
 app.use(express_1.default.json({ limit: "25mb" }));
 // Health

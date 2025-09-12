@@ -1,86 +1,25 @@
-// src/lib/ollama.ts  (now Groq-backed; keeping export names for compatibility)
+// src/lib/ollama.ts  ← now a tiny Groq client (no embeddings)
 
 import fetch from "node-fetch";
-import  {Response} from "node-fetch";
+
 /**
- * ENV expected:
- *  - GROQ_API_KEY          (required for Groq)
- *  - GROQ_MODEL            (optional, default: "llama-3.1-8b-instant")
- *  - GROQ_EMBED_MODEL      (optional; if absent we fallback to Ollama embeddings)
- *  - OLLAMA_URL            (optional fallback for embeddings; default http://localhost:11434)
+ * ENV you must set on the backend:
+ * - GROQ_API_KEY           required
+ * - GROQ_MODEL             optional (defaults to "llama-3.1-8b-instant")
  */
-
 const GROQ_API_BASE = "https://api.groq.com/openai/v1";
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL ;
-const GROQ_EMBED_MODEL = process.env.GROQ_EMBED_MODEL || ""; // leave blank if you don't want embeddings via Groq
-
-const OLLAMA_URL = process.env.OLLAMA_URL ;
-
-/* ---------------- Types ---------------- */
+const GROQ_API_KEY = process.env.GROQ_API_KEY!;
+const DEFAULT_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 
 type OpenAIChatCompletion = {
-  choices?: Array<{ message?: { role?: string; content?: string } }>;
+  choices?: Array<{
+    message?: { role?: string; content?: string };
+  }>;
 };
 
-type OpenAIEmbeddingResponse = {
-  data: Array<{ embedding: number[] }>;
-};
-
-/* ---------------- Embeddings ---------------- */
-
-/**
- * Generate embeddings via Groq's OpenAI-compatible endpoint if GROQ_EMBED_MODEL is set.
- * Otherwise, fallback to local Ollama embeddings (model "nomic-embed-text" by default).
- */
-export async function embedText(text: string, model = "nomic-embed-text"): Promise<number[]> {
-  if (GROQ_API_KEY && GROQ_EMBED_MODEL) {
-    // Try Groq embeddings first (if explicitly configured)
-    const res: Response = await fetch(`${GROQ_API_BASE}/embeddings`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: GROQ_EMBED_MODEL, // e.g. if/when Groq exposes an embedding model for you
-        input: text,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await safeText(res);
-      throw new Error(`Groq embeddings error: ${res.status} ${res.statusText} — ${body}`);
-    }
-
-    const json = (await res.json()) as OpenAIEmbeddingResponse;
-    const emb = json?.data?.[0]?.embedding;
-    if (!emb) throw new Error("Groq embeddings: empty embedding");
-    return emb;
-  }
-
-  // ---------- Fallback: Ollama local embeddings ----------
-  const r = await fetch(`${OLLAMA_URL}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, input: text }),
-  });
-
-  if (!r.ok) {
-    const body = await safeText(r);
-    throw new Error(`Ollama embed error: ${r.status} ${r.statusText} — ${body}`);
-  }
-
-  const data = (await r.json()) as { embedding: number[] };
-  if (!data?.embedding) throw new Error("Ollama: empty embedding");
-  return data.embedding;
-}
-
-/* ---------------- Text generation ---------------- */
-
-/**
- * Kept the same name for compatibility with your existing imports.
- * Under the hood this now calls Groq's Chat Completions (OpenAI-compatible).
+/** 
+ * Generate JSON from Groq (OpenAI-compatible) using your prompt.
+ * Returns the raw assistant content string (which should be JSON per your prompt).
  */
 export async function groqGenerateJSON(args: {
   prompt: string;
@@ -89,16 +28,16 @@ export async function groqGenerateJSON(args: {
   options?: { temperature?: number; max_tokens?: number };
 }): Promise<string> {
   if (!GROQ_API_KEY) {
-    throw new Error("Missing GROQ_API_KEY — set it in your backend environment.");
+    throw new Error("Missing GROQ_API_KEY in server environment");
   }
 
-  const { prompt, model = GROQ_MODEL, signal, options } = args;
+  const { prompt, model = DEFAULT_MODEL, signal, options } = args;
 
   const res = await fetch(`${GROQ_API_BASE}/chat/completions`, {
     method: "POST",
     signal,
     headers: {
-      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${GROQ_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -107,7 +46,7 @@ export async function groqGenerateJSON(args: {
         {
           role: "system",
           content:
-            "You are an event extraction engine. Reply ONLY with valid JSON. No code fences, no prose.",
+            "You are an event extraction engine. Reply ONLY with valid minified JSON. No code fences. No prose.",
         },
         { role: "user", content: prompt },
       ],
@@ -127,12 +66,6 @@ export async function groqGenerateJSON(args: {
   return content;
 }
 
-/* ---------------- Utils ---------------- */
-
-async function safeText(r: Response) {
-  try {
-    return await r.text();
-  } catch {
-    return "";
-  }
+async function safeText(r: any) {
+  try { return await r.text(); } catch { return ""; }
 }

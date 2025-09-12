@@ -27,10 +27,7 @@ app.use((0, express_rate_limit_1.default)({
 }));
 // CORS (permissive; optionally replace "*" with process.env.ALLOW_ORIGIN)
 app.use((0, cors_1.default)({
-    origin: [
-        "https://myex-olive.vercel.app", // your deployed frontend
-        "http://localhost:5173", // local dev
-    ],
+    origin: "*",
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
 }));

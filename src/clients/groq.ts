@@ -1,4 +1,3 @@
-// src/lib/ollama.ts  ← now a tiny Groq client (no embeddings)
 
 import fetch from "node-fetch";
 

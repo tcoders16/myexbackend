@@ -1,18 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "sourceMap": true
-    /* remove the "types": ["@cloudflare/workers-types"] line */
+    "target": "ES2020",                // modern JS output
+    "module": "CommonJS",              // Render expects CJS (since node uses require)
+    "moduleResolution": "Node",        // standard Node-style resolution
+    "outDir": "dist",                  // compiled output
+    "rootDir": "src",                  // treat everything inside src as the project root
+    "strict": true,                    // strict typing
+    "esModuleInterop": true,           // better import interop with CommonJS/ESM
+    "forceConsistentCasingInFileNames": true, // catch case mismatches (important on Linux)
+    "skipLibCheck": true,              // speed up build
+    "resolveJsonModule": true,         // allow import of .json
+    "sourceMap": true                  // helpful for debugging stack traces
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"                         // include *all* files in src
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",                    // optional: skip unit tests
+    "**/__tests__/**"                  // optional: skip test folders
+  ]
 }

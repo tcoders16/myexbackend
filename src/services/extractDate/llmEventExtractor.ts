@@ -11,8 +11,9 @@
 
 import { z } from "zod";
 import type { ExtractionResult, EventLite, ISO8601 } from "../../types/events";
-import { groqGenerateJSON } from "../../clients/groq"; // ← or "../../clients/groq" if that's where you put it
+
 import { asISO } from "../../types/events";
+import { groqGenerateJSON } from "../../clients/groq";
 
 const DEBUG_LLM = process.env.NODE_ENV !== "production";
 

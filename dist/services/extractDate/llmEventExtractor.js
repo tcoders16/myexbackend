@@ -12,8 +12,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractLLM = extractLLM;
 const zod_1 = require("zod");
-const groq_1 = require("../../clients/groq"); // ← or "../../clients/groq" if that's where you put it
 const events_1 = require("../../types/events");
+const groq_1 = require("../../clients/groq");
 const DEBUG_LLM = process.env.NODE_ENV !== "production";
 function logChunk(label, s, max = 1200) {
     if (!DEBUG_LLM)

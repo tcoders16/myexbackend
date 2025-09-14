@@ -134,26 +134,56 @@ export async function extractLLM(input: {
 
 function buildPrompt(args: { text: string; timezone: string; referenceDate?: string }) {
   const { text, timezone, referenceDate } = args;
-  return `
-You are an extraction engine. Extract calendar events from the given text.
-- Resolve relative dates using the reference date if provided.
-- Output ONLY valid, minified JSON with this exact schema:
+  return `You are an extraction engine. Extract ONLY genuine calendar-worthy items from the text.
+
+RETURN FORMAT (minified JSON ONLY):
 {"events":[{"title":"string","start":"ISO","end":"ISO?","allDay":"boolean?"}],"warnings":["string"]}
 
-Rules:
-- "start" and "end" must be ISO 8601 (include timezone offset or Z).
-- If unsure about end time, omit "end" or set it to null.
-- If the date is clearly all-day, set "allDay": true.
-- Do NOT include any additional fields or explanations.
-- Do NOT include code fences.
-
-Context:
+CONTEXT:
 - timezone: ${timezone}
 - referenceDate: ${referenceDate ?? "none"}
 
+PARSING RULES
+1) Dates:
+   - Resolve relative dates/times (today, tomorrow, next Wednesday, “in 2 hours”) using referenceDate if provided.
+   - Output ISO 8601 with timezone offset or Z. If time unknown for an all-day item, set allDay:true and omit time.
+2) End time:
+   - If explicit, use it. If duration is stated (e.g., “for 30m”), compute end.
+   - If unknown, omit "end" (do NOT guess).
+3) Title:
+   - Short action-oriented label (e.g., “Sync with Alice”, “File court motion”, “Dentist appointment”).
+   - Remove boilerplate like signatures, disclaimers, quoted headers.
+
+EXTRACTION CRITERIA (STRICT — to avoid false positives)
+Extract ONLY if at least ONE of the following is true:
+- A meeting / call / appointment is proposed, scheduled, or confirmed (e.g., “meet”, “call”, “join”, “booked”, “scheduled”, “see you at 3pm”).
+- A deadline or due-by date for a concrete task (e.g., “Submit report by Friday 5pm”).
+- An event invitation / calendar intent (“send an invite”, “put this on calendar”, “schedule for…”).
+- Explicit time window or date + intent (“kickoff on Sep 21 at 10am”, “demo next Tue 2–3pm”).
+
+Do NOT extract if:
+- It’s news, history, examples, or hypothetical (“if we met on Friday…”).
+- It’s a past log with no follow-up action (“We met last week at 3pm”).
+- It’s vague with no actionable intent (“Sometime this month we could chat”).
+- It’s metadata (email footers, availability blocks without a chosen slot), auto-signatures, or disclaimers.
+- It’s a quoted prior thread that is superseded by a newer message.
+
+CONFIDENCE & GATING
+- Assign an internal confidence based on explicitness (invite/verb + time/date). If < 0.6, DO NOT create an event; instead add a warning "SKIPPED_LOW_CONF".
+- If a sentence lists multiple candidate times, pick the one explicitly accepted/confirmed; otherwise skip with "AMBIGUOUS_TIME".
+
+NORMALIZATION
+- Deduplicate overlapping duplicates (same title ±15m).
+- If only a date is given and phrased as a holiday/whole-day, set allDay:true.
+- Keep titles ≤ 80 chars.
+
+OUTPUT RULES
+- Output ONLY the JSON (no prose, no code fences).
+- Keep a "warnings" array; include reasons like "SKIPPED_LOW_CONF", "AMBIGUOUS_TIME", "NO_ACTION_INTENT".
+- Schema must match exactly.
+
 TEXT:
-${text}
-`.trim();
+${text}`.trim();
 }
 
 function clampPositive(n: number, min: number, max: number) {

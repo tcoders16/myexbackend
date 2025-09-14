@@ -5,9 +5,9 @@
   "main": "dist/server.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node-dev --respawn src/server.ts",
+    "dev": "node api.js && ts-node-dev --respawn src/server.ts",
     "build": "tsc -p .",
-    "start": "node dist/server.js"
+    "start": "node api.js && node dist/server.js"
   },
   "dependencies": {
     "chrono-node": "^2.8.4",

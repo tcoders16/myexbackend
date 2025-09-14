@@ -168,9 +168,18 @@ Do NOT extract if:
 - It’s metadata (email footers, availability blocks without a chosen slot), auto-signatures, or disclaimers.
 - It’s a quoted prior thread that is superseded by a newer message.
 
+DO NOT create events from:
+- Newsletters, job alerts, marketing, or listings with dates.
+- Any email that lists job postings, sales, offers, or informational content.
+- Dates that are headers or metadata with no explicit action to schedule.
+
 CONFIDENCE & GATING
 - Assign an internal confidence based on explicitness (invite/verb + time/date). If < 0.6, DO NOT create an event; instead add a warning "SKIPPED_LOW_CONF".
 - If a sentence lists multiple candidate times, pick the one explicitly accepted/confirmed; otherwise skip with "AMBIGUOUS_TIME".
+
+Extract ONLY if the text explicitly shows a scheduled/confirmed action 
+(meeting, call, appointment, deadline). If there is no such intent, 
+output {"events":[],"warnings":["NO_ACTION_INTENT"]}.
 
 NORMALIZATION
 - Deduplicate overlapping duplicates (same title ±15m).

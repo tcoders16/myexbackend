@@ -1,53 +1,46 @@
 // services/extractService.ts
-import { extractRules } from "./ruleEventExtractor";
 import { extractLLM } from "./llmEventExtractor";
-import type { ExtractionResult } from "../../types/events.ts";
+import type { ExtractionResult } from "../../types/events";
+import type{ WarningCode } from "../../types/events"; // adjust path if different
 
-const LLM_WAIT_MS = 15000;
+const LLM_WAIT_MS = 15_000;
 
 /**
- * Strategy (fixed):
- * 1) Try LLM first with a strict 5s budget.
- * 2) If timed out / degraded / no events → run Rules.
- * 3) Return whichever produced events (Rules may also return empty; caller can handle upstream).
+ * LLM-only extraction:
+ * - Calls the LLM extractor with a hard time budget.
+ * - Never falls back to rules.
+ * - Returns whatever the LLM returned (even if 0 events).
  */
 export async function extractSmart(input: {
   text?: string;
   fileId?: string;
   timezone: string;
   referenceDate?: string;
-  llmFirst?: boolean;   // ignored; we always do LLM first per requirement
-  budgetMs?: number;    // caller budget is not used here; we enforce 5s
+  llmFirst?: boolean;   // ignored
+  budgetMs?: number;    // ignored; we enforce LLM_WAIT_MS
 }): Promise<ExtractionResult> {
-  const overallStart = Date.now();
-  console.log(`🧠 Strategy: LLM first (max ${LLM_WAIT_MS}ms), then Rules if needed.`);
+  const t0 = Date.now();
+  console.log(`🧠 LLM-only strategy (max ${LLM_WAIT_MS}ms).`);
 
-  // 1) LLM attempt with hard 5s cap (extractLLM honors budgetMs via AbortController)
-  const llmStart = Date.now();
   const llm = await extractLLM({ ...input, budgetMs: LLM_WAIT_MS });
-  const llmElapsed = Date.now() - llmStart;
+  console.log(
+    `✔️ LLM extraction finished in ${Date.now() - t0}ms; events=${llm.events.length} degraded=${llm.degraded ?? false}`
+  );
 
-  if (!llm.degraded && llm.events.length > 0) {
-    console.log(
-      `✅ Using LLM extraction (successful) in ${llmElapsed}ms; events=${llm.events.length}`
-    );
-    return llm;
+  // If no events → mark degraded + push a warning
+  if (llm.events.length === 0 && !llm.degraded) {
+    return {
+      ...llm,
+      degraded: true,
+      warnings: [
+        ...(llm.warnings ?? []),
+        {
+          code: "NO_RETURN_EVENT" as WarningCode,
+          message: "LLM returned 0 events",
+        },
+      ],
+    };
   }
 
-  const llmReason = llm.degraded
-    ? (llm.warnings?.[0] ?? "llm degraded")
-    : "llm returned no events";
-  console.log(`⚠️ LLM not usable → ${llmReason}. Falling back to Rules.`);
-
-  // 2) Rules fallback
-  const rulesStart = Date.now();
-  const rules = await extractRules(input);
-  const rulesElapsed = Date.now() - rulesStart;
-
-  console.log(
-    `📜 Rules extraction completed in ${rulesElapsed}ms; events=${rules.events.length}`
-  );
-  console.log(`⏱️ Total extractSmart time: ${Date.now() - overallStart}ms`);
-
-  return rules;
+  return llm;
 }
